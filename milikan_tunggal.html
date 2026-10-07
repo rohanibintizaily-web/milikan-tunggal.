@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Milikan Tunggal - Permainan Edutainment Perniagaan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- MediaPipe Hands CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .custom-shadow { box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1); }
+        canvas.mirrored { transform: scaleX(-1); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-slate-900 min-h-screen text-slate-100 flex flex-col items-center justify-between p-4">
+
+    <header class="w-full max-w-5xl flex justify-between items-center py-4 px-6 glass rounded-2xl text-slate-800 custom-shadow mb-4">
+        <div class="flex items-center space-x-3">
+            <span class="text-3xl">🏢</span>
+            <div>
+                <h1 class="text-xl font-bold text-indigo-900">Milikan Tunggal</h1>
+                <p class="text-xs text-slate-500">Prinsip Perniagaan Tingkatan 4</p>
+            </div>
+        </div>
+        <div class="flex items-center space-x-4">
+            <div class="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-semibold">
+                Skor: <span id="score-display">0</span>
+            </div>
+            <div class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-semibold">
+                Modal: RM <span id="capital-display">10,000</span>
+            </div>
+            <button onclick="openAIConsultant()" class="bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow hover:opacity-90">
+                🤖 Tanya Cikgu AI
+            </button>
+            <button id="toggle-gesture-btn" onclick="toggleGestureControl()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow">
+                📷 Gestur: <span id="gesture-status">Tutup</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="w-full max-w-5xl flex-1 flex flex-col items-center justify-center relative">
+        
+        <!-- Welcome Screen -->
+        <div id="screen-welcome" class="w-full max-w-2xl glass rounded-3xl p-8 text-slate-800 custom-shadow text-center">
+            <div class="text-6xl mb-4 animate-bounce">🏪</div>
+            <h2 class="text-3xl font-extrabold text-indigo-900 mb-3">Selamat Datang ke Dunia Perniagaan!</h2>
+            <p class="text-slate-600 mb-6 leading-relaxed">
+                Kuasai topik <b>Milikan Tunggal</b> (Ciri, Kelebihan, Kekurangan, dan Pengurusan) melalui pengembaraan interaktif, cabaran gestur tangan MediaPipe, serta bantuan AI Pintar!
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 text-left">
+                <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                    <h3 class="font-bold text-indigo-900 flex items-center gap-2">🎯 Objektif Pembelajaran</h3>
+                    <p class="text-xs text-slate-600 mt-1">Memahami penubuhan, liabiliti tak terhad, dan kawalan penuh perniagaan milikan tunggal.</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+                    <h3 class="font-bold text-purple-900 flex items-center gap-2">✨ Penambahbaikan AI</h3>
+                    <p class="text-xs text-slate-600 mt-1">Guna 'Tanya Cikgu AI' untuk penerangan konsep perniagaan mengikut silibus KSSM.</p>
+                </div>
+            </div>
+            <button onclick="startGame()" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl text-lg shadow-lg hover:opacity-90 transition transform hover:-translate-y-0.5">
+                Mula Permainan 🚀
+            </button>
+        </div>
+
+        <!-- Hub Screen (Level Selector) -->
+        <div id="screen-hub" class="hidden w-full max-w-4xl glass rounded-3xl p-8 text-slate-800 custom-shadow">
+            <h2 class="text-2xl font-bold text-indigo-900 mb-2 text-center">Peta Misi Perniagaan</h2>
+            <p class="text-center text-slate-500 text-sm mb-6">Pilih modul pembelajaran untuk diuji:</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Module 1 -->
+                <div onclick="startModule(1)" class="bg-white border-2 border-indigo-100 hover:border-indigo-500 p-6 rounded-2xl cursor-pointer transition transform hover:-translate-y-1 shadow-sm group">
+                    <div class="text-4xl mb-3 group-hover:scale-110 transition">📋</div>
+                    <h3 class="font-bold text-indigo-900 text-lg mb-1">Modul 1: Ciri & Penubuhan</h3>
+                    <p class="text-xs text-slate-500 mb-4">Kenal pasti dokumen pendaftaran, pemilik tunggal, dan skala operasi kecil.</p>
+                    <span class="inline-block bg-indigo-100 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded">Mula Misi ➔</span>
+                </div>
+                <!-- Module 2 -->
+                <div onclick="startModule(2)" class="bg-white border-2 border-purple-100 hover:border-purple-500 p-6 rounded-2xl cursor-pointer transition transform hover:-translate-y-1 shadow-sm group">
+                    <div class="text-4xl mb-3 group-hover:scale-110 transition">⚖️</div>
+                    <h3 class="font-bold text-purple-900 text-lg mb-1">Modul 2: Kelebihan & Kekurangan</h3>
+                    <p class="text-xs text-slate-500 mb-4">Uji minda mengenai Liabiliti Tak Terhad, kerahsiaan, dan cukai pendaptan individu.</p>
+                    <span class="inline-block bg-purple-100 text-purple-700 text-xs font-semibold px-2.5 py-1 rounded">Mula Misi ➔</span>
+                </div>
+                <!-- Module 3 -->
+                <div onclick="startModule(3)" class="bg-white border-2 border-emerald-100 hover:border-emerald-500 p-6 rounded-2xl cursor-pointer transition transform hover:-translate-y-1 shadow-sm group">
+                    <div class="text-4xl mb-3 group-hover:scale-110 transition">💰</div>
+                    <h3 class="font-bold text-emerald-900 text-lg mb-1">Modul 3: Cabaran Tunai & Untung</h3>
+                    <p class="text-xs text-slate-500 mb-4">Uruskan aliran tunai kedai runcit anda dan buat keputusan perniagaan harian.</p>
+                    <span class="inline-block bg-emerald-100 text-emerald-700 text-xs font-semibold px-2.5 py-1 rounded">Mula Misi ➔</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game/Quiz Play Screen -->
+        <div id="screen-game" class="hidden w-full max-w-3xl glass rounded-3xl p-8 text-slate-800 custom-shadow relative">
+            <div class="flex justify-between items-center mb-6">
+                <span id="module-badge" class="bg-indigo-100 text-indigo-800 font-semibold px-3 py-1 rounded-full text-xs">Modul 1</span>
+                <span class="text-sm font-bold text-slate-500">Soalan <span id="current-q">1</span> / <span id="total-q">4</span></span>
+            </div>
+            
+            <div id="question-container" class="mb-6">
+                <h3 id="question-text" class="text-xl font-bold text-indigo-950 mb-4">Soalan akan dipaparkan di sini...</h3>
+                <div id="options-container" class="grid grid-cols-1 gap-3">
+                    <!-- Options injected dynamically -->
+                </div>
+            </div>
+
+            <div id="feedback-box" class="hidden p-4 rounded-xl mb-4 text-sm font-medium"></div>
+
+            <div class="flex justify-between items-center">
+                <button onclick="returnToHub()" class="text-slate-500 hover:text-slate-800 text-sm font-semibold">&larr; Kembali ke Peta</button>
+                <button id="next-btn" onclick="nextQuestion()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-6 py-2 rounded-xl text-sm transition">Seterusnya ➔</button>
+            </div>
+        </div>
+
+        <!-- Simulation Screen (Module 3 Mini Game) -->
+        <div id="screen-sim" class="hidden w-full max-w-3xl glass rounded-3xl p-8 text-slate-800 custom-shadow">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-emerald-900">🏪 Simulasi Kedai Runcit Encik Ali</h3>
+                <button onclick="returnToHub()" class="text-slate-500 hover:text-slate-800 text-sm font-semibold">&larr; Kembali</button>
+            </div>
+            <p class="text-xs text-slate-600 mb-6">Sebagai pemilik tunggal, setiap keputusan mempengaruhi untung rugi dan liabiliti peribadi anda.</p>
+            
+            <div id="sim-scenario-box" class="bg-white p-6 rounded-2xl border border-emerald-100 mb-6 shadow-sm">
+                <p id="sim-text" class="font-semibold text-slate-800 mb-4">Situasi perniagaan bermula...</p>
+                <div id="sim-actions" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Simulation buttons -->
+                </div>
+            </div>
+            <div id="sim-result" class="text-sm font-bold text-center text-indigo-900 mb-4"></div>
+            
+            <!-- AI Dynamic Feedback Box -->
+            <div id="ai-feedback-container" class="hidden bg-violet-50 border border-violet-200 p-4 rounded-2xl text-xs text-violet-900">
+                <div class="font-bold mb-1 flex items-center gap-1">🤖 Ulasan Cikgu AI:</div>
+                <p id="ai-feedback-text" class="italic">Sedang menganalisa tindakan perniagaan anda...</p>
+            </div>
+        </div>
+
+        <!-- AI Consultant Modal -->
+        <div id="ai-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div class="glass p-6 rounded-3xl max-w-lg w-full text-slate-800 custom-shadow flex flex-col max-h-[80vh]">
+                <div class="flex justify-between items-center mb-4 border-b pb-2">
+                    <h3 class="font-bold text-lg text-indigo-900 flex items-center gap-2">🤖 Cikgu AI Perniagaan (KSSM)</h3>
+                    <button onclick="closeAIConsultant()" class="text-slate-400 hover:text-slate-700 font-bold text-lg">&times;</button>
+                </div>
+                <div class="text-xs text-slate-500 mb-3">Tanya apa sahaja soalan berkaitan bab Milikan Tunggal atau minta nasihat perniagaan.</div>
+                
+                <div id="ai-chat-history" class="flex-1 overflow-y-auto bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-4 space-y-3 text-xs max-h-60">
+                    <div class="bg-indigo-100 text-indigo-900 p-3 rounded-xl">
+                        <b>Cikgu AI:</b> Selamat sejahtera! Saya cikgu peribadi anda untuk topik Tingkatan 4. Ada apa-apa yang tidak faham tentang liabiliti tak terhad atau pendaftaran SSM?
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <input type="text" id="ai-input-query" placeholder="Tanya soalan di sini..." class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-indigo-500 bg-white">
+                    <button onclick="sendQueryToGemini()" id="ai-send-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow">Hantar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gesture Camera Overlay (Floating bottom right or hidden) -->
+        <div id="gesture-container" class="fixed bottom-4 right-4 z-50 hidden glass p-3 rounded-2xl custom-shadow flex flex-col items-center">
+            <div class="relative w-40 h-30 bg-slate-900 rounded-lg overflow-hidden mb-2">
+                <video id="webcam" class="absolute inset-0 w-full h-full object-cover mirrored" autoplay playsinline></video>
+                <canvas id="output_canvas" class="absolute inset-0 w-full h-full mirrored"></canvas>
+            </div>
+            <div class="text-[10px] text-slate-700 font-semibold text-center">
+                Gestur: <span id="gesture-instruction" class="text-indigo-600 font-bold">Tunjuk / Cubit (Pinch)</span>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="w-full max-w-5xl text-center text-xs text-slate-400 py-2">
+        Milik Tunggal Edutainment &copy; 2026 | Dikuasakan oleh MediaPipe Hands
+    </footer>
+
+    <script>
+        // Game State Variables
+        let score = 0;
+        let capital = 10000;
+        let currentModule = 1;
+        let questionIndex = 0;
+        let gestureActive = false;
+        let handsInstance = null;
+        let cameraInstance = null;
+        let lastActionTime = 0;
+
+        // Educational Database (Modules & Questions)
+        const modulesData = {
+            1: [
+                {
+                    q: "Apakah maksud perniagaan 'Milikan Tunggal'?",
+                    options: [
+                        "Perniagaan yang dimiliki dan dikawal oleh dua orang rakan kongsi.",
+                        "Perniagaan yang dimiliki, dikawal dan diuruskan oleh seorang individu sahaja.",
+                        "Perniagaan yang ditubuhkan oleh kerajaan Malaysia.",
+                        "Syarikat berhad yang mempunyai beratus-ratus pemegang saham."
+                    ],
+                    answer: 1,
+                    explanation: "Milikan tunggal ialah bentuk perniagaan yang paling mudah ditubuhkan dan dimiliki sepenuhnya oleh seorang individu."
+                },
+                {
+                    q: "Di manakah perniagaan milikan tunggal perlu didaftarkan di Malaysia?",
+                    options: [
+                        "Suruhanjaya Syarikat Malaysia (SSM)",
+                        "Pihak Berkuasa Tempatan (PBT) sahaja",
+                        "Kementerian Kewangan",
+                        "Mahkamah Tinggi"
+                    ],
+                    answer: 0,
+                    explanation: "Perniagaan milikan tunggal wajib didaftarkan di bawah Akta Pendaftaran Perniagaan 1956 dengan Suruhanjaya Syarikat Malaysia (SSM)."
+                },
+                {
+                    q: "Antara berikut, yang manakah contoh perniagaan milikan tunggal?",
+                    options: [
+                        "Bank Rakyat Malaysia Berhad",
+                        "Kedai Runcit Muthu",
+                        "Tenaga Nasional Berhad",
+                        "Petronas Dagangan Bhd"
+                    ],
+                    answer: 1,
+                    explanation: "Kedai runcit kecil, gerai makanan, dan salun gunting rambut persendirian adalah contoh lazim milikan tunggal."
+                }
+            ],
+            2: [
+                {
+                    q: "Apakah yang dimaksudkan dengan 'Liabiliti Tak Terhad' bagi pemilik tunggal?",
+                    options: [
+                        "Pemilik tidak perlu membayar sebarang hutang perniagaan.",
+                        "Harta peribadi pemilik boleh disita untuk menjelaskan hutang perniagaan jika perniagaan muflis.",
+                        "Liabiliti syarikat ditanggung oleh kerajaan.",
+                        "Hutang perniagaan terhad kepada modal yang dilaburkan sahaja."
+                    ],
+                    answer: 1,
+                    explanation: "Liabiliti tak terhad bermakna pemiutang boleh menuntut harta peribadi pemilik (seperti rumah atau kereta) sekiranya aset perniagaan tidak mencukupi."
+                },
+                {
+                    q: "Apakah kelebihan utama milikan tunggal berbanding syarikat berhad?",
+                    options: [
+                        "Mudah ditubuhkan dan kos pendaftaran yang rendah",
+                        "Modal perniagaan sentiasa terhad tanpa had maksimum",
+                        "Pemeriksaan akaun yang sangat rumit oleh juruaudit negara",
+                        "Pengecualian cukai sepenuhnya"
+                    ],
+                    answer: 0,
+                    explanation: "Milikan tunggal mudah ditubuhkan, peraturan kerajaan yang minimum, serta kos penubuhan yang rendah."
+                },
+                {
+                    q: "Bagaimanakah cukai pendapatan dikenakan ke atas keuntungan milikan tunggal?",
+                    options: [
+                        "Dikenakan Cukai Khas Korporat",
+                        "Dikenakan Cukai Pendapatan Individu pemilik",
+                        "Tidak dikenakan sebarang cukai langsung",
+                        "Cukai dibayar oleh pembekal barang"
+                    ],
+                    answer: 1,
+                    explanation: "Keuntungan perniagaan milikan tunggal dianggap sebagai pendapatan individu pemilik dan dikenakan cukai pendapatan individu."
+                }
+            ],
+            3: [
+                {
+                    q: "Encik Ali ingin memperluaskan kedai runcitnya tetapi menghadapi masalah kekurangan modal. Apakah cara terbaik bagi pemilik tunggal?",
+                    options: [
+                        "Menjual saham di Bursa Malaysia",
+                        "Memohon pinjaman bank atau menggunakan simpanan peribadi",
+                        "Menukar nama kepada syarikat multinasional",
+                        "Menutup perniagaan serta-merta"
+                    ],
+                    answer: 1,
+                    explanation: "Pemilik tunggal sukar mendapat pinjaman besar, jadi sumber lazim adalah simpanan peribadi, pinjaman keluarga, atau pinjaman mikro bank."
+                }
+            ]
+        };
+
+        // Simulation scenarios for Module 3
+        const simScenarios = [
+            {
+                text: "Perniagaan anda memerlukan stok barangan tambahan bernilai RM2,000. Tunai di tangan semasa anda ialah RM1,500.",
+                choices: [
+                    { text: "Guna wang simpanan peribadi untuk topup", effect: "Simpanan peribadi berkurang, stok bertambah.", capitalChange: -500, scoreAdd: 20, contextKey: "personal_savings" },
+                    { text: "Batalkan pesanan stok", effect: "Pelanggan beralih ke kedai lain.", capitalChange: 0, scoreAdd: -10, contextKey: "cancel_order" }
+                ]
+            },
+            {
+                text: "Terdapat lebihan untung bersih RM1,000 bulan ini. Apa tindakan anda sebagai usahawan berhemah?",
+                choices: [
+                    { text: "Simpan sebagai modal pusingan & rizab kecemasan", effect: "Kewangan perniagaan makin kukuh!", capitalChange: 1000, scoreAdd: 30, contextKey: "save_reserve" },
+                    { text: "Beli barangan mewah peribadi", effect: "Modal perniagaan terjejas.", capitalChange: 200, scoreAdd: 5, contextKey: "buy_luxury" }
+                ]
+            }
+        ];
+        let simIndex = 0;
+
+        // Navigation Functions
+        function startGame() {
+            document.getElementById('screen-welcome').classList.add('hidden');
+            document.getElementById('screen-hub').classList.remove('hidden');
+        }
+
+        function returnToHub() {
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-sim').classList.add('hidden');
+            document.getElementById('screen-hub').classList.remove('hidden');
+        }
+
+        function startModule(modNum) {
+            currentModule = modNum;
+            document.getElementById('screen-hub').classList.add('hidden');
+            
+            if (modNum === 3 && simScenarios.length > 0) {
+                simIndex = 0;
+                document.getElementById('screen-sim').classList.remove('hidden');
+                loadSimulation();
+            } else {
+                questionIndex = 0;
+                document.getElementById('screen-game').classList.remove('hidden');
+                loadQuestion();
+            }
+            document.getElementById('module-badge').innerText = `Modul ${modNum}`;
+        }
+
+        // Quiz Logic
+        function loadQuestion() {
+            const qs = modulesData[currentModule];
+            if (questionIndex >= qs.length) {
+                alertBox("Tahniah! Anda telah melengkapkan modul ini dengan jayanya!");
+                returnToHub();
+                return;
+            }
+            
+            const currentQ = qs[questionIndex];
+            document.getElementById('current-q').innerText = questionIndex + 1;
+            document.getElementById('total-q').innerText = qs.length;
+            document.getElementById('question-text').innerText = currentQ.q;
+            
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+            
+            currentQ.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left p-4 rounded-xl bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 font-medium text-sm transition shadow-sm flex items-center justify-between";
+                btn.innerHTML = `<span>${opt}</span> <span class="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded">Pilihan ${idx + 1}</span>`;
+                btn.onclick = () => selectAnswer(idx);
+                optionsContainer.appendChild(btn);
+            });
+            
+            document.getElementById('feedback-box').classList.add('hidden');
+            document.getElementById('next-btn').classList.add('hidden');
+        }
+
+        function selectAnswer(selectedIndex) {
+            const qs = modulesData[currentModule];
+            const currentQ = qs[questionIndex];
+            const feedbackBox = document.getElementById('feedback-box');
+            
+            feedbackBox.classList.remove('hidden');
+            if (selectedIndex === currentQ.answer) {
+                feedbackBox.className = "p-4 rounded-xl mb-4 text-sm font-medium bg-emerald-100 text-emerald-800 border border-emerald-200";
+                feedbackBox.innerHTML = `<b>Betul! 🎉</b> ${currentQ.explanation}`;
+                score += 50;
+                document.getElementById('score-display').innerText = score;
+            } else {
+                feedbackBox.className = "p-4 rounded-xl mb-4 text-sm font-medium bg-rose-100 text-rose-800 border border-rose-200";
+                feedbackBox.innerHTML = `<b>Kurang tepat. ❌</b> ${currentQ.explanation}`;
+            }
+            
+            // Disable option buttons after answering
+            const buttons = document.querySelectorAll('#options-container button');
+            buttons.forEach(b => b.disabled = true);
+            
+            document.getElementById('next-btn').classList.remove('hidden');
+        }
+
+        function nextQuestion() {
+            questionIndex++;
+            loadQuestion();
+        }
+
+        // Simulation Mini Game Logic
+        function loadSimulation() {
+            if (simIndex >= simScenarios.length) {
+                alertBox("Tahniah! Simulasi pengurusan perniagaan selesai.");
+                returnToHub();
+                return;
+            }
+            const sim = simScenarios[simIndex];
+            document.getElementById('sim-text').innerText = sim.text;
+            const actionsContainer = document.getElementById('sim-actions');
+            actionsContainer.innerHTML = '';
+            
+            sim.choices.forEach((choice, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "p-4 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-xl text-left text-sm font-medium transition text-emerald-900";
+                btn.innerHTML = `<b>Tindakan ${idx+1}:</b> ${choice.text}`;
+                btn.onclick = () => executeSimChoice(choice);
+                actionsContainer.appendChild(btn);
+            });
+        }
+
+        function executeSimChoice(choice) {
+            capital += choice.capitalChange;
+            score += choice.scoreAdd;
+            document.getElementById('capital-display').innerText = capital;
+            document.getElementById('score-display').innerText = score;
+            document.getElementById('sim-result').innerText = `Kesan: ${choice.effect}`;
+            
+            // Trigger Gemini AI Feedback for simulation choice
+            fetchGeminiSimulationFeedback(choice.contextKey, choice.effect);
+
+            setTimeout(() => {
+                document.getElementById('sim-result').innerText = '';
+                document.getElementById('ai-feedback-container').classList.add('hidden');
+                simIndex++;
+                loadSimulation();
+            }, 5000);
+        }
+
+        // Gemini API Integration 1: AI Consultant Chat
+        function openAIConsultant() {
+            document.getElementById('ai-modal').classList.remove('hidden');
+        }
+
+        function closeAIConsultant() {
+            document.getElementById('ai-modal').classList.add('hidden');
+        }
+
+        async function sendQueryToGemini() {
+            const inputField = document.getElementById('ai-input-query');
+            const query = inputField.value.trim();
+            if (!query) return;
+
+            const chatHistory = document.getElementById('ai-chat-history');
+            
+            // Append user message
+            chatHistory.innerHTML += `<div class="bg-white border border-slate-200 text-slate-800 p-3 rounded-xl ml-4"><b>Anda:</b> ${query}</div>`;
+            inputField.value = '';
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            // Loading state
+            const loadingId = 'ai-loading-' + Date.now();
+            chatHistory.innerHTML += `<div id="${loadingId}" class="bg-indigo-50 text-indigo-900 p-3 rounded-xl mr-4 italic">Cikgu AI sedang menaip jawapan...</div>`;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            try {
+                const systemPrompt = "Anda adalah seorang guru subjek Perniagaan Tingkatan 4 KSSM yang pakar dalam topik Milikan Tunggal. Berikan jawapan ringkas, padat, dan mesra pelajar dalam Bahasa Melayu.";
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: query }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                document.getElementById(loadingId).remove();
+
+                const candidate = result.candidates?.[0];
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const aiReply = candidate.content.parts[0].text;
+                    chatHistory.innerHTML += `<div class="bg-indigo-100 text-indigo-900 p-3 rounded-xl mr-4"><b>Cikgu AI:</b> ${aiReply}</div>`;
+                } else {
+                    chatHistory.innerHTML += `<div class="bg-rose-100 text-rose-900 p-3 rounded-xl mr-4">Maaf, cikgu tidak dapat memproses jawapan buat masa ini.</div>`;
+                }
+            } catch (error) {
+                document.getElementById(loadingId).remove();
+                chatHistory.innerHTML += `<div class="bg-rose-100 text-rose-900 p-3 rounded-xl mr-4">Ralat sambungan rangkaian ke pelayan AI.</div>`;
+            }
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // Gemini API Integration 2: Simulation Decision Feedback
+        async function fetchGeminiSimulationFeedback(actionKey, effectText) {
+            const feedbackContainer = document.getElementById('ai-feedback-container');
+            const feedbackText = document.getElementById('ai-feedback-text');
+            
+            feedbackContainer.classList.remove('hidden');
+            feedbackText.innerText = "Cikgu AI sedang menilai kesan keputusan terhadap liabiliti dan modal anda...";
+
+            try {
+                const systemPrompt = "Anda ialah pakar perniagaan milikan tunggal. Berikan ulasan pendek 1 ayat dalam Bahasa Melayu menerangkan kaitan tindakan tersebut dengan prinsip perniagaan milikan tunggal (cth: liabiliti tak terhad, modal pemilik).";
+                const userPrompt = `Tindakan pemain: ${actionKey}. Kesan: ${effectText}. Berikan ulasan ringkas.`;
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userPrompt }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    feedbackText.innerText = candidate.content.parts[0].text;
+                } else {
+                    feedbackText.innerText = "Keputusan ini mempengaruhi aliran tunai harian perniagaan milikan tunggal anda.";
+                }
+            } catch (err) {
+                feedbackText.innerText = "Pengurusan kewangan yang teliti menjamin kelangsungan perniagaan kecil.";
+            }
+        }
+
+        // Custom Message Box instead of alert()
+        function alertBox(msg) {
+            const hub = document.getElementById('screen-hub');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = "fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4";
+            alertDiv.innerHTML = `
+                <div class="glass p-6 rounded-3xl max-w-sm w-full text-center custom-shadow">
+                    <div class="text-4xl mb-3">🏆</div>
+                    <h3 class="font-bold text-lg text-indigo-900 mb-2">Hebat!</h3>
+                    <p class="text-sm text-slate-600 mb-4">${msg}</p>
+                    <button onclick="this.closest('.fixed').remove()" class="w-full py-2.5 bg-indigo-600 text-white font-bold rounded-xl text-sm shadow">Teruskan</button>
+                </div>
+            `;
+            document.body.appendChild(alertDiv);
+        }
+
+        // MediaPipe Hands Integration
+        function toggleGestureControl() {
+            gestureActive = !gestureActive;
+            const container = document.getElementById('gesture-container');
+            const statusText = document.getElementById('gesture-status');
+            
+            if (gestureActive) {
+                container.classList.remove('hidden');
+                statusText.innerText = "Aktif";
+                initMediaPipe();
+            } else {
+                container.classList.add('hidden');
+                statusText.innerText = "Tutup";
+                if (cameraInstance) {
+                    cameraInstance.stop();
+                }
+            }
+        }
+
+        function initMediaPipe() {
+            const videoElement = document.getElementById('webcam');
+            const canvasElement = document.getElementById('output_canvas');
+            const canvasCtx = canvasElement.getContext('2d');
+
+            const hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+
+            hands.setOptions({
+                maxNumHands: 1,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.5,
+                minTrackingConfidence: 0.5
+            });
+
+            hands.onResults(onHandResults);
+
+            cameraInstance = new Camera(videoElement, {
+                onFrame: async () => {
+                    await hands.send({ image: videoElement });
+                },
+                width: 320,
+                height: 240
+            });
+            cameraInstance.start();
+        }
+
+        function onHandResults(results) {
+            const canvasElement = document.getElementById('output_canvas');
+            const canvasCtx = canvasElement.getContext('2d');
+            
+            canvasCtx.save();
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                
+                // Simple Pinch detection (Thumb tip index 4 and Index finger tip index 8)
+                const thumbTip = landmarks[4];
+                const indexTip = landmarks[8];
+                const distance = Math.hypot(thumbTip.x - indexTip.x, thumbTip.y - indexTip.y);
+                
+                document.getElementById('gesture-instruction').innerText = distance < 0.05 ? "Cubit Dikesan! 🤏" : "Tangan Aktif ✋";
+                
+                // If pinch is detected trigger option 1 if on question screen
+                if (distance < 0.05 && (Date.now() - lastActionTime > 2000)) {
+                    lastActionTime = Date.now();
+                    const activeButtons = document.querySelectorAll('#options-container button');
+                    if (activeButtons.length > 0 && !activeButtons[0].disabled) {
+                        activeButtons[0].click();
+                    }
+                }
+            } else {
+                document.getElementById('gesture-instruction').innerText = "Tiada tangan dikesan";
+            }
+            canvasCtx.restore();
+        }
+    </script>
+
+</body>
+</html>
